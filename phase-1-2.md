@@ -156,7 +156,6 @@ type App struct {
 
 - `internal/service/vehicle_service.go`
 - `internal/service/expense_service.go`
-- `internal/service/reminder_service.go`
 - `internal/service/backup_service.go`
 
 #### Зачем
@@ -190,7 +189,7 @@ func NewVehicleService() *VehicleService {
 - `internal/storage/sqlite.go`
 - `internal/storage/vehicle_repo.go`
 - `internal/storage/expense_repo.go`
-- `internal/storage/reminder_repo.go`
+- `internal/storage/backup_repo.go`
 
 #### Зачем
 
@@ -296,7 +295,6 @@ wails dev
 - `Vehicle`
 - `Expense`
 - `ExpenseCategory`
-- `Reminder`
 - `Backup`
 
 ### Шаг 1. Создать доменные файлы
@@ -307,7 +305,6 @@ wails dev
 
 - `internal/domain/vehicle.go`
 - `internal/domain/expense.go`
-- `internal/domain/reminder.go`
 - `internal/domain/backup.go`
 
 #### Зачем
@@ -357,6 +354,28 @@ type Expense struct {
 	CreatedAt   time.Time
 }
 ```
+
+Для `Backup`:
+
+```go
+type Backup struct {
+	ID        int64
+	FilePath  string
+	Note      string
+	CreatedAt time.Time
+}
+```
+
+#### Что означает `Backup` в этом проекте
+
+На Phase 2 не нужно писать сам механизм резервного копирования. Здесь достаточно описать доменную сущность, которая хранит информацию о уже созданной копии:
+
+- `ID` — идентификатор записи;
+- `FilePath` — путь к файлу резервной копии;
+- `Note` — необязательная заметка пользователя;
+- `CreatedAt` — когда копия была создана.
+
+Само создание backup-файла, экспорт и работа с SQLite пойдут позже, в storage/service-слой.
 
 #### Практическое замечание
 
@@ -424,7 +443,7 @@ type Vehicle struct {
 
 - `VehicleRepository`
 - `ExpenseRepository`
-- `ReminderRepository`
+- `BackupRepository`
 
 #### Где хранить
 
@@ -468,7 +487,7 @@ Service-слой будет зависеть не от SQLite, а от инте�
 - `Vehicle.Year` должен быть в адекватном диапазоне;
 - `Odometer` не может быть отрицательным;
 - `Expense.Amount` должен быть больше нуля;
-- `Reminder` должен иметь хотя бы одно условие: по дате или по пробегу.
+- `Backup.FilePath` не должен быть пустым.
 
 #### Как использовать сейчас
 
