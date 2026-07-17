@@ -1,18 +1,29 @@
 package handler
 
 import (
+	"autojournal/internal/service"
 	"context"
 	"fmt"
 )
 
-// App struct
 type App struct {
 	ctx context.Context
+
+	vehicleService  *service.VehicleService
+	expenseService  *service.ExpenseService
+	categoryService *service.ExpenseCategorySevice
 }
 
-// NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(
+	vehicleService *service.VehicleService,
+	expenseService *service.ExpenseService,
+	categoryService *service.ExpenseCategorySevice,
+) *App {
+	return &App{
+		vehicleService:  vehicleService,
+		expenseService:  expenseService,
+		categoryService: categoryService,
+	}
 }
 
 // startup is called when the app starts. The context is saved

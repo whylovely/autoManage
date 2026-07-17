@@ -2,6 +2,7 @@ package main
 
 import (
 	"autojournal/internal/handler"
+	"autojournal/internal/service"
 	"autojournal/internal/storage"
 	"autojournal/migrations"
 	"embed"
@@ -25,8 +26,20 @@ func main() {
 	if err := migrations.RunMigrations(db); err != nil {
 		log.Fatal(err)
 	}
-	// Create an instance of the app structure
-	app := handler.NewApp()
+
+	vehicleRepo := storage.NewVehicleRepo(db)
+	expenseRepo := storage.NewExpenseRepo(db)
+	categoryRepo := storage.NewExpenseCategoryRepo(db)
+
+	vehicleService := service.NewVehicleService(vehicleRepo)
+	expenseService := service.NewExpense(expenseRepo)
+	categoryService := service.NewExpenseCategory(categoryRepo)
+
+	app := handler.NewApp(
+		vehicleService,
+		expenseService,
+		categoryService,
+	)
 
 	// Create application with options
 	err = wails.Run(&options.App{
