@@ -30,7 +30,7 @@ func OpenSQLite() (*sqlx.DB, error) {
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 
-	if _, err := db.Exec(`PRAGME journal_mode=WAL;`); err != nil {
+	if _, err := db.Exec(`PRAGMA journal_mode=WAL;`); err != nil {
 		return nil, fmt.Errorf("enable wal: %w", err)
 	}
 
