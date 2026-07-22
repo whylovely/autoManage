@@ -34,7 +34,7 @@ func validateVehicle(vehicle *domain.Vehicle) error {
 		return fmt.Errorf("VIN must contain 17 valid symbols")
 	}
 
-	if vehicle.Odometer <= 0 {
+	if vehicle.Odometer < 0 {
 		return fmt.Errorf("Odometer with minus")
 	}
 
@@ -82,7 +82,7 @@ func (s *VehicleService) ListVehicles(ctx context.Context) ([]domain.Vehicle, er
 }
 
 func (s *VehicleService) UpdateOdometer(ctx context.Context, id, odometer int64) error {
-	if id <= 0 || odometer <= 1001 {
+	if id <= 0 || odometer < 0 {
 		return fmt.Errorf("ID or odometer wrong")
 	}
 
@@ -92,7 +92,7 @@ func (s *VehicleService) UpdateOdometer(ctx context.Context, id, odometer int64)
 	}
 
 	if odometer < v.Odometer {
-		return fmt.Errorf("odometer cannot be negative")
+		return fmt.Errorf("odometer cannot decrease")
 	}
 
 	v.Odometer = odometer

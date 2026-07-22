@@ -32,7 +32,7 @@ func main() {
 	categoryRepo := storage.NewExpenseCategoryRepo(db)
 
 	vehicleService := service.NewVehicleService(vehicleRepo)
-	expenseService := service.NewExpense(expenseRepo)
+	expenseService := service.NewExpenseService(expenseRepo, vehicleRepo, categoryRepo)
 	categoryService := service.NewExpenseCategory(categoryRepo)
 
 	app := handler.NewApp(
