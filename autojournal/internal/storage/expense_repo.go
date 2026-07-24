@@ -114,3 +114,23 @@ func (r *ExpenseRepo) SumByVehicle(ctx context.Context, vehicleID int64) (int64,
 
 	return total, nil
 }
+
+func (r *ExpenseRepo) TotalsByVehicleCategory(ctx context.Context, vehicleID int64) ([]domain.ExpenseCategoryTotal, error) {
+	const query = `
+			SELECT
+				c.id AS category_id,
+				c.name AS category_name,
+				SUM(e.amount) AS total_amount
+			FROM expenses e
+			JOIN expense_categories c ON c.id = e.category_id
+			WHERE e.vehicle_id = ?
+			GROUP BY c.id, c.name
+			ORDER BY total_amount DESC`
+
+	var totals []domain.ExpenseCategoryTotal
+	if err := r.db.SelectContext(ctx, &totals, query, vehicleID); err != nil {
+		return nil, fmt.Errorf("no expenses on car: %w", err)
+	}
+
+	return totals, nil
+}

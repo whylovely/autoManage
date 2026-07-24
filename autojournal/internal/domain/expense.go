@@ -18,3 +18,9 @@ type ExpenseCategory struct {
 	Name string
 	Icon string
 }
+
+type ExpenseCategoryTotal struct {
+	CategoryID   int64  `db:"category_id"`
+	CategoryName string `db:"category_name"`
+	TotalAmount  int64  `db:"total_amount"`
+}
