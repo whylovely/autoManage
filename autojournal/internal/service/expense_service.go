@@ -84,6 +84,23 @@ func (s *ExpenseService) ListVehicleExpenses(ctx context.Context, vehicleID int6
 	return s.expenseRepo.ListByVehicle(ctx, vehicleID)
 }
 
+func (s *ExpenseService) GetVehicleExpenseTotal(ctx context.Context, vehicleID int64) (int64, error) {
+	if vehicleID <= 0 {
+		return 0, fmt.Errorf("vehicle id must be positive")
+	}
+
+	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
+		return 0, fmt.Errorf("No vehicle with id: %w", err)
+	}
+
+	a, err := s.expenseRepo.SumByVehicle(ctx, vehicleID)
+	if err != nil {
+		return 0, fmt.Errorf("trouble with repo: %w", err)
+	}
+
+	return a, nil
+}
+
 func NewExpenseCategory(repo domain.ExpenseCategoryRepository) *ExpenseCategorySevice {
 	return &ExpenseCategorySevice{repo: repo}
 }

@@ -100,3 +100,17 @@ func (r *ExpenseRepo) ListByVehicle(ctx context.Context, vehicleID int64) ([]dom
 
 	return expenses, nil
 }
+
+func (r *ExpenseRepo) SumByVehicle(ctx context.Context, vehicleID int64) (int64, error) {
+	const query = `
+			SELECT COALESCE(SUM(amount), 0)
+			FROM expenses
+			WHERE vehicle_id = ?`
+
+	var total int64
+	if err := r.db.GetContext(ctx, &total, query, vehicleID); err != nil {
+		return 0, fmt.Errorf("no amount on car: %w", err)
+	}
+
+	return total, nil
+}
