@@ -7,6 +7,7 @@ import (
 	"autojournal/migrations"
 	"embed"
 	"log"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -30,15 +31,27 @@ func main() {
 	vehicleRepo := storage.NewVehicleRepo(db)
 	expenseRepo := storage.NewExpenseRepo(db)
 	categoryRepo := storage.NewExpenseCategoryRepo(db)
+	backupRepo := storage.NewBackupRepo(db)
 
 	vehicleService := service.NewVehicleService(vehicleRepo)
 	expenseService := service.NewExpenseService(expenseRepo, vehicleRepo, categoryRepo)
 	categoryService := service.NewExpenseCategory(categoryRepo)
 
+	appDataDir, err := storage.AppDataDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	backupService := service.NewBackupService(
+		backupRepo,
+		storage.NewSQLiteBackuper(db),
+		filepath.Join(appDataDir, "backups"),
+	)
+
 	app := handler.NewApp(
 		vehicleService,
 		expenseService,
 		categoryService,
+		backupService,
 	)
 
 	// Create application with options

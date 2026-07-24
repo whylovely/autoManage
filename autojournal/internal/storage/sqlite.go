@@ -8,13 +8,21 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func OpenSQLite() (*sqlx.DB, error) {
+func AppDataDir() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return nil, fmt.Errorf("get user config dir: %w", err)
+		return "", fmt.Errorf("get user config dir: %w", err)
 	}
 
-	appDir := filepath.Join(configDir, "autojournal")
+	return filepath.Join(configDir, "autojournal"), nil
+}
+
+func OpenSQLite() (*sqlx.DB, error) {
+	appDir, err := AppDataDir()
+	if err != nil {
+		return nil, err
+	}
+
 	if err := os.MkdirAll(appDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create app dir: %w", err)
 	}

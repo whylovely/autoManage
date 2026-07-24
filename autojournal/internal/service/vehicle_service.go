@@ -19,23 +19,23 @@ func NewVehicleService(repo domain.VehicleRepository) *VehicleService {
 
 func validateVehicle(vehicle *domain.Vehicle) error {
 	if vehicle == nil {
-		return fmt.Errorf("Vehicle is null")
+		return fmt.Errorf("%w: vehicle is required", domain.ErrValidation)
 	}
 	if strings.TrimSpace(vehicle.Make) == "" || strings.TrimSpace(vehicle.Model) == "" {
-		return fmt.Errorf("Make or Model is null")
+		return fmt.Errorf("%w: make and model are required", domain.ErrValidation)
 	}
 	if vehicle.Year > time.Now().Year()+1 || vehicle.Year < 1886 {
-		return fmt.Errorf("Year too much")
+		return fmt.Errorf("%w: vehicle year is out of range", domain.ErrValidation)
 	}
 
 	vinRegexp := regexp.MustCompile(`^[A-HJ-NPR-Z0-9]{17}$`)
 	vehicle.VIN = strings.ToUpper(strings.TrimSpace(vehicle.VIN))
 	if !vinRegexp.MatchString(vehicle.VIN) {
-		return fmt.Errorf("VIN must contain 17 valid symbols")
+		return fmt.Errorf("%w: VIN must contain 17 valid symbols", domain.ErrValidation)
 	}
 
 	if vehicle.Odometer < 0 {
-		return fmt.Errorf("Odometer with minus")
+		return fmt.Errorf("%w: odometer cannot be negative", domain.ErrValidation)
 	}
 
 	return nil
@@ -55,7 +55,7 @@ func (s *VehicleService) UpdateVehicle(ctx context.Context, vehicle *domain.Vehi
 	}
 
 	if vehicle.ID <= 0 {
-		return fmt.Errorf("ID do not == 0")
+		return fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 
 	return s.repo.Update(ctx, vehicle)
@@ -63,7 +63,7 @@ func (s *VehicleService) UpdateVehicle(ctx context.Context, vehicle *domain.Vehi
 
 func (s *VehicleService) DeleteVehicle(ctx context.Context, id int64) error {
 	if id <= 0 {
-		return fmt.Errorf("ID wrong")
+		return fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 
 	return s.repo.Delete(ctx, id)
@@ -71,7 +71,7 @@ func (s *VehicleService) DeleteVehicle(ctx context.Context, id int64) error {
 
 func (s *VehicleService) GetVehicle(ctx context.Context, id int64) (*domain.Vehicle, error) {
 	if id <= 0 {
-		return nil, fmt.Errorf("vehicle id must be positive")
+		return nil, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 
 	return s.repo.GetByID(ctx, id)
@@ -82,8 +82,11 @@ func (s *VehicleService) ListVehicles(ctx context.Context) ([]domain.Vehicle, er
 }
 
 func (s *VehicleService) UpdateOdometer(ctx context.Context, id, odometer int64) error {
-	if id <= 0 || odometer < 0 {
-		return fmt.Errorf("ID or odometer wrong")
+	if id <= 0 {
+		return fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
+	}
+	if odometer < 0 {
+		return fmt.Errorf("%w: odometer cannot be negative", domain.ErrValidation)
 	}
 
 	v, err := s.repo.GetByID(ctx, id)
@@ -92,7 +95,7 @@ func (s *VehicleService) UpdateOdometer(ctx context.Context, id, odometer int64)
 	}
 
 	if odometer < v.Odometer {
-		return fmt.Errorf("odometer cannot decrease")
+		return fmt.Errorf("%w: odometer cannot decrease", domain.ErrValidation)
 	}
 
 	v.Odometer = odometer

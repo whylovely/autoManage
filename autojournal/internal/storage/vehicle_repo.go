@@ -41,7 +41,7 @@ func (r *VehicleRepo) Create(ctx context.Context, vehicle *domain.Vehicle) error
 		vehicle.Notes,
 	).Scan(&vehicle.ID)
 	if err != nil {
-		return fmt.Errorf("create vehicle: %w", err)
+		return fmt.Errorf("%w: create vehicle: %w", domain.ErrInfrastructure, err)
 	}
 
 	return nil
@@ -69,15 +69,15 @@ func (r *VehicleRepo) Update(ctx context.Context, vehicle *domain.Vehicle) error
 		vehicle.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("update vehicle: %w", err)
+		return fmt.Errorf("%w: update vehicle: %w", domain.ErrInfrastructure, err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("get updated rows: %w", err)
+		return fmt.Errorf("%w: get updated rows: %w", domain.ErrInfrastructure, err)
 	}
 	if rows == 0 {
-		return fmt.Errorf("vehicle %d not found", vehicle.ID)
+		return fmt.Errorf("%w: vehicle %d", domain.ErrNotFound, vehicle.ID)
 	}
 
 	return nil
@@ -86,15 +86,15 @@ func (r *VehicleRepo) Update(ctx context.Context, vehicle *domain.Vehicle) error
 func (r *VehicleRepo) Delete(ctx context.Context, id int64) error {
 	result, err := r.db.ExecContext(ctx, `DELETE FROM vehicles WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("delete vehicle: %w", err)
+		return fmt.Errorf("%w: delete vehicle: %w", domain.ErrInfrastructure, err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("get deleted rows: %w", err)
+		return fmt.Errorf("%w: get deleted rows: %w", domain.ErrInfrastructure, err)
 	}
 	if rows == 0 {
-		return fmt.Errorf("vehicle %d not found", id)
+		return fmt.Errorf("%w: vehicle %d", domain.ErrNotFound, id)
 	}
 
 	return nil
@@ -115,9 +115,9 @@ func (r *VehicleRepo) GetByID(ctx context.Context, id int64) (*domain.Vehicle, e
 	var vehicle domain.Vehicle
 	if err := r.db.GetContext(ctx, &vehicle, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("vehicle %d not found", id)
+			return nil, fmt.Errorf("%w: vehicle %d", domain.ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("get vehicle: %w", err)
+		return nil, fmt.Errorf("%w: get vehicle: %w", domain.ErrInfrastructure, err)
 	}
 
 	return &vehicle, nil
@@ -137,7 +137,7 @@ func (r *VehicleRepo) List(ctx context.Context) ([]domain.Vehicle, error) {
 
 	var vehicles []domain.Vehicle
 	if err := r.db.SelectContext(ctx, &vehicles, query); err != nil {
-		return nil, fmt.Errorf("list vehicles: %w", err)
+		return nil, fmt.Errorf("%w: list vehicles: %w", domain.ErrInfrastructure, err)
 	}
 
 	return vehicles, nil
