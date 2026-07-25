@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -37,7 +38,7 @@ func (r *ExpenseRepo) Create(ctx context.Context, expense *domain.Expense) error
 		expense.Description,
 	).Scan(&expense.ID)
 	if err != nil {
-		return fmt.Errorf("create expense: %w", err)
+		return fmt.Errorf("%w: create expense: %w", domain.ErrInfrastructure, err)
 	}
 
 	return nil
@@ -50,16 +51,16 @@ func (r *ExpenseRepo) Delete(ctx context.Context, id int64) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("delete expense: %w", err)
+		return fmt.Errorf("%w: delete expense: %w", domain.ErrInfrastructure, err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("get deleted rows: %w", err)
+		return fmt.Errorf("%w: get deleted rows: %w", domain.ErrInfrastructure, err)
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("expense %d not found", id)
+		return fmt.Errorf("%w: expense %d", domain.ErrNotFound, id)
 	}
 
 	return nil
@@ -76,9 +77,9 @@ func (r *ExpenseRepo) GetByID(ctx context.Context, id int64) (*domain.Expense, e
 	var expense domain.Expense
 	if err := r.db.GetContext(ctx, &expense, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("expense %d not found", id)
+			return nil, fmt.Errorf("%w: expense %d", domain.ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("get expense: %w", err)
+		return nil, fmt.Errorf("%w: get expense: %w", domain.ErrInfrastructure, err)
 	}
 
 	return &expense, nil
@@ -95,7 +96,30 @@ func (r *ExpenseRepo) ListByVehicle(ctx context.Context, vehicleID int64) ([]dom
 
 	var expenses []domain.Expense
 	if err := r.db.SelectContext(ctx, &expenses, query, vehicleID); err != nil {
-		return nil, fmt.Errorf("list expenses: %w", err)
+		return nil, fmt.Errorf("%w: list expenses: %w", domain.ErrInfrastructure, err)
+	}
+
+	return expenses, nil
+}
+
+func (r *ExpenseRepo) ListByVehicleAndPeriod(
+	ctx context.Context,
+	vehicleID int64,
+	from, to time.Time,
+) ([]domain.Expense, error) {
+	const query = `
+		SELECT
+			id, vehicle_id, category_id, amount, odometer_at,
+			date, description, created_at
+		FROM expenses
+		WHERE vehicle_id = ?
+			AND date >= ?
+			AND date <= ?
+		ORDER BY date DESC`
+
+	var expenses []domain.Expense
+	if err := r.db.SelectContext(ctx, &expenses, query, vehicleID, from, to); err != nil {
+		return nil, fmt.Errorf("%w: list expenses by period: %w", domain.ErrInfrastructure, err)
 	}
 
 	return expenses, nil
@@ -109,7 +133,7 @@ func (r *ExpenseRepo) SumByVehicle(ctx context.Context, vehicleID int64) (int64,
 
 	var total int64
 	if err := r.db.GetContext(ctx, &total, query, vehicleID); err != nil {
-		return 0, fmt.Errorf("no amount on car: %w", err)
+		return 0, fmt.Errorf("%w: sum expenses: %w", domain.ErrInfrastructure, err)
 	}
 
 	return total, nil
@@ -129,7 +153,7 @@ func (r *ExpenseRepo) TotalsByVehicleCategory(ctx context.Context, vehicleID int
 
 	var totals []domain.ExpenseCategoryTotal
 	if err := r.db.SelectContext(ctx, &totals, query, vehicleID); err != nil {
-		return nil, fmt.Errorf("no expenses on car: %w", err)
+		return nil, fmt.Errorf("%w: list expense totals by category: %w", domain.ErrInfrastructure, err)
 	}
 
 	return totals, nil

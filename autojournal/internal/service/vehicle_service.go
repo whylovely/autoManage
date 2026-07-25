@@ -13,6 +13,8 @@ type VehicleService struct {
 	repo domain.VehicleRepository
 }
 
+var vinRegexp = regexp.MustCompile(`^[A-HJ-NPR-Z0-9]{17}$`)
+
 func NewVehicleService(repo domain.VehicleRepository) *VehicleService {
 	return &VehicleService{repo: repo}
 }
@@ -28,7 +30,6 @@ func validateVehicle(vehicle *domain.Vehicle) error {
 		return fmt.Errorf("%w: vehicle year is out of range", domain.ErrValidation)
 	}
 
-	vinRegexp := regexp.MustCompile(`^[A-HJ-NPR-Z0-9]{17}$`)
 	vehicle.VIN = strings.ToUpper(strings.TrimSpace(vehicle.VIN))
 	if !vinRegexp.MatchString(vehicle.VIN) {
 		return fmt.Errorf("%w: VIN must contain 17 valid symbols", domain.ErrValidation)
@@ -56,6 +57,14 @@ func (s *VehicleService) UpdateVehicle(ctx context.Context, vehicle *domain.Vehi
 
 	if vehicle.ID <= 0 {
 		return fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
+	}
+
+	current, err := s.repo.GetByID(ctx, vehicle.ID)
+	if err != nil {
+		return fmt.Errorf("get vehicle before update: %w", err)
+	}
+	if vehicle.Odometer < current.Odometer {
+		return fmt.Errorf("%w: odometer cannot decrease", domain.ErrValidation)
 	}
 
 	return s.repo.Update(ctx, vehicle)

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"autojournal/internal/domain"
 	"context"
 	"fmt"
 	"strings"
@@ -20,11 +21,11 @@ func NewSQLiteBackuper(db *sqlx.DB) *SQLiteBackuper {
 
 func (b *SQLiteBackuper) CreateSnapshot(ctx context.Context, destination string) error {
 	if strings.TrimSpace(destination) == "" {
-		return fmt.Errorf("backup destination is required")
+		return fmt.Errorf("%w: backup destination is required", domain.ErrValidation)
 	}
 
 	if _, err := b.db.ExecContext(ctx, `VACUUM INTO ?`, destination); err != nil {
-		return fmt.Errorf("create sqlite snapshot: %w", err)
+		return fmt.Errorf("%w: create sqlite snapshot: %w", domain.ErrInfrastructure, err)
 	}
 
 	return nil

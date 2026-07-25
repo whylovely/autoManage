@@ -31,7 +31,7 @@ func (r *BackupRepo) Create(ctx context.Context, backup *domain.Backup) error {
 		&backup.CreatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("create backup metadata: %w", err)
+		return fmt.Errorf("%w: create backup metadata: %w", domain.ErrInfrastructure, err)
 	}
 
 	return nil
@@ -47,9 +47,9 @@ func (r *BackupRepo) GetByID(ctx context.Context, id int64) (*domain.Backup, err
 	var backup domain.Backup
 	if err := r.db.GetContext(ctx, &backup, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("backup %d not found", id)
+			return nil, fmt.Errorf("%w: backup %d", domain.ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("get backup metadata: %w", err)
+		return nil, fmt.Errorf("%w: get backup metadata: %w", domain.ErrInfrastructure, err)
 	}
 
 	return &backup, nil
@@ -64,7 +64,7 @@ func (r *BackupRepo) List(ctx context.Context) ([]domain.Backup, error) {
 
 	var backups []domain.Backup
 	if err := r.db.SelectContext(ctx, &backups, query); err != nil {
-		return nil, fmt.Errorf("list backup metadata: %w", err)
+		return nil, fmt.Errorf("%w: list backup metadata: %w", domain.ErrInfrastructure, err)
 	}
 
 	return backups, nil

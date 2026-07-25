@@ -4,6 +4,7 @@ import (
 	"autojournal/internal/domain"
 	"context"
 	"fmt"
+	"time"
 )
 
 type ExpenseService struct {
@@ -26,24 +27,24 @@ func NewExpenseService(
 
 func (s *ExpenseService) AddExpense(ctx context.Context, expense *domain.Expense) error {
 	if expense == nil {
-		return fmt.Errorf("Expense is null")
+		return fmt.Errorf("%w: expense is required", domain.ErrValidation)
 	}
 
 	if expense.VehicleID <= 0 {
-		return fmt.Errorf("vehicle id must be positive")
+		return fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 	if expense.CategoryID <= 0 {
-		return fmt.Errorf("category id must be positive")
+		return fmt.Errorf("%w: category id must be positive", domain.ErrValidation)
 	}
 	if expense.Amount <= 0 {
-		return fmt.Errorf("amount must be positive")
+		return fmt.Errorf("%w: amount must be positive", domain.ErrValidation)
 	}
 	if expense.OdometerAt < 0 {
-		return fmt.Errorf("odometer cannot be negative")
+		return fmt.Errorf("%w: odometer cannot be negative", domain.ErrValidation)
 	}
 
 	if expense.Date.IsZero() {
-		return fmt.Errorf("expense date is required")
+		return fmt.Errorf("%w: expense date is required", domain.ErrValidation)
 	}
 
 	if _, err := s.vehicleRepo.GetByID(ctx, expense.VehicleID); err != nil {
@@ -58,7 +59,7 @@ func (s *ExpenseService) AddExpense(ctx context.Context, expense *domain.Expense
 
 func (s *ExpenseService) DeleteExpense(ctx context.Context, id int64) error {
 	if id <= 0 {
-		return fmt.Errorf("expense id must be positive")
+		return fmt.Errorf("%w: expense id must be positive", domain.ErrValidation)
 	}
 
 	return s.expenseRepo.Delete(ctx, id)
@@ -66,7 +67,7 @@ func (s *ExpenseService) DeleteExpense(ctx context.Context, id int64) error {
 
 func (s *ExpenseService) GetExpense(ctx context.Context, id int64) (*domain.Expense, error) {
 	if id <= 0 {
-		return nil, fmt.Errorf("expense id must be positive")
+		return nil, fmt.Errorf("%w: expense id must be positive", domain.ErrValidation)
 	}
 
 	return s.expenseRepo.GetByID(ctx, id)
@@ -74,7 +75,7 @@ func (s *ExpenseService) GetExpense(ctx context.Context, id int64) (*domain.Expe
 
 func (s *ExpenseService) ListVehicleExpenses(ctx context.Context, vehicleID int64) ([]domain.Expense, error) {
 	if vehicleID <= 0 {
-		return nil, fmt.Errorf("vehicle id must be positive")
+		return nil, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 
 	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
@@ -84,18 +85,40 @@ func (s *ExpenseService) ListVehicleExpenses(ctx context.Context, vehicleID int6
 	return s.expenseRepo.ListByVehicle(ctx, vehicleID)
 }
 
-func (s *ExpenseService) GetVehicleExpenseTotal(ctx context.Context, vehicleID int64) (int64, error) {
+func (s *ExpenseService) ListVehicleExpensesForPeriod(
+	ctx context.Context,
+	vehicleID int64,
+	from, to time.Time,
+) ([]domain.Expense, error) {
 	if vehicleID <= 0 {
-		return 0, fmt.Errorf("vehicle id must be positive")
+		return nil, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
+	}
+	if from.IsZero() || to.IsZero() {
+		return nil, fmt.Errorf("%w: period bounds are required", domain.ErrValidation)
+	}
+	if from.After(to) {
+		return nil, fmt.Errorf("%w: period start must not be after period end", domain.ErrValidation)
 	}
 
 	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
-		return 0, fmt.Errorf("No vehicle with id: %w", err)
+		return nil, fmt.Errorf("get vehicle: %w", err)
+	}
+
+	return s.expenseRepo.ListByVehicleAndPeriod(ctx, vehicleID, from, to)
+}
+
+func (s *ExpenseService) GetVehicleExpenseTotal(ctx context.Context, vehicleID int64) (int64, error) {
+	if vehicleID <= 0 {
+		return 0, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
+	}
+
+	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
+		return 0, fmt.Errorf("get vehicle: %w", err)
 	}
 
 	a, err := s.expenseRepo.SumByVehicle(ctx, vehicleID)
 	if err != nil {
-		return 0, fmt.Errorf("trouble with repo: %w", err)
+		return 0, fmt.Errorf("sum vehicle expenses: %w", err)
 	}
 
 	return a, nil
@@ -103,19 +126,19 @@ func (s *ExpenseService) GetVehicleExpenseTotal(ctx context.Context, vehicleID i
 
 func (s *ExpenseService) GetVehicleExpenseTotalsByCategory(ctx context.Context, vehicleID int64) ([]domain.ExpenseCategoryTotal, error) {
 	if vehicleID <= 0 {
-		return nil, fmt.Errorf("vehicle id must be positive")
+		return nil, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
 	}
 
 	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
 		return nil, fmt.Errorf("get vehicle: %w", err)
 	}
 
-	t, err := s.expenseRepo.TotalsByVehicleCategory(ctx, vehicleID)
+	totals, err := s.expenseRepo.TotalsByVehicleCategory(ctx, vehicleID)
 	if err != nil {
-		return nil, fmt.Errorf("trouble with repo: %w", err)
+		return nil, fmt.Errorf("get expense totals by category: %w", err)
 	}
 
-	return t, nil
+	return totals, nil
 }
 
 func NewExpenseCategory(repo domain.ExpenseCategoryRepository) *ExpenseCategorySevice {

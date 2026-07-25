@@ -26,7 +26,7 @@ func (r *ExpenseCategoryRepo) List(ctx context.Context) ([]domain.ExpenseCategor
 
 	var categories []domain.ExpenseCategory
 	if err := r.db.SelectContext(ctx, &categories, query); err != nil {
-		return nil, fmt.Errorf("list expense categories: %w", err)
+		return nil, fmt.Errorf("%w: list expense categories: %w", domain.ErrInfrastructure, err)
 	}
 
 	return categories, nil
@@ -41,9 +41,9 @@ func (r *ExpenseCategoryRepo) GetByID(ctx context.Context, id int64) (*domain.Ex
 	var category domain.ExpenseCategory
 	if err := r.db.GetContext(ctx, &category, query, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("category %d not found", id)
+			return nil, fmt.Errorf("%w: category %d", domain.ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("get category: %w", err)
+		return nil, fmt.Errorf("%w: get category: %w", domain.ErrInfrastructure, err)
 	}
 
 	return &category, nil

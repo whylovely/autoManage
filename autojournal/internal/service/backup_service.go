@@ -30,11 +30,11 @@ func NewBackupService(
 
 func (s *BackupService) CreateBackup(ctx context.Context, note string) (*domain.Backup, error) {
 	if strings.TrimSpace(s.backupDir) == "" {
-		return nil, fmt.Errorf("backup directory is required")
+		return nil, fmt.Errorf("%w: backup directory is required", domain.ErrValidation)
 	}
 
 	if err := os.MkdirAll(s.backupDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create backup directory: %w", err)
+		return nil, fmt.Errorf("%w: create backup directory: %w", domain.ErrInfrastructure, err)
 	}
 
 	fileName := fmt.Sprintf(
