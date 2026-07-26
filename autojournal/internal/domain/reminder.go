@@ -25,3 +25,9 @@ type Reminder struct {
 	IsActive         bool         `db:"is_active"`
 	CreatedAt        time.Time    `db:"created_at"`
 }
+
+type DueReminder struct {
+	Reminder      Reminder `json:"reminder"`
+	DueByDate     bool     `json:"dueByDate"`
+	DueByOdometer bool     `json:"dueByOdometer"`
+}
