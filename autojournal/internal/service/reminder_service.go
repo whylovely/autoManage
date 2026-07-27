@@ -109,6 +109,30 @@ func (s *ReminderService) UpdateReminder(ctx context.Context, reminder *domain.R
 	return s.repo.Update(ctx, reminder)
 }
 
+func (s *ReminderService) DeleteReminder(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return fmt.Errorf("%w: reminder id must be positive", domain.ErrValidation)
+	}
+
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *ReminderService) ListVehicleReminders(ctx context.Context, vehicleID int64) ([]domain.Reminder, error) {
+	if vehicleID <= 0 {
+		return nil, fmt.Errorf("%w: vehicle id must be positive", domain.ErrValidation)
+	}
+	if _, err := s.vehicleRepo.GetByID(ctx, vehicleID); err != nil {
+		return nil, fmt.Errorf("get vehicle: %w", err)
+	}
+
+	reminders, err := s.repo.ListByVehicle(ctx, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle reminders: %w", err)
+	}
+
+	return reminders, nil
+}
+
 func (s *ReminderService) GetDueReminders(ctx context.Context, now time.Time) ([]domain.DueReminder, error) {
 	reminders, err := s.repo.ListActive(ctx)
 	if err != nil {

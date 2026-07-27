@@ -10,22 +10,74 @@ export function CreateBackup(arg1) {
   return window['go']['handler']['App']['CreateBackup'](arg1);
 }
 
+export function CreateReminder(arg1) {
+  return window['go']['handler']['App']['CreateReminder'](arg1);
+}
+
 export function CreateVehicle(arg1) {
   return window['go']['handler']['App']['CreateVehicle'](arg1);
 }
 
-export function Greet(arg1) {
-  return window['go']['handler']['App']['Greet'](arg1);
+export function DeleteExpense(arg1) {
+  return window['go']['handler']['App']['DeleteExpense'](arg1);
+}
+
+export function DeleteReminder(arg1) {
+  return window['go']['handler']['App']['DeleteReminder'](arg1);
+}
+
+export function DeleteVehicle(arg1) {
+  return window['go']['handler']['App']['DeleteVehicle'](arg1);
+}
+
+export function ExportVehicleExpenses(arg1, arg2) {
+  return window['go']['handler']['App']['ExportVehicleExpenses'](arg1, arg2);
+}
+
+export function GetDueReminders() {
+  return window['go']['handler']['App']['GetDueReminders']();
+}
+
+export function GetExpenseStats(arg1) {
+  return window['go']['handler']['App']['GetExpenseStats'](arg1);
+}
+
+export function GetVehicle(arg1) {
+  return window['go']['handler']['App']['GetVehicle'](arg1);
+}
+
+export function GetVehicles() {
+  return window['go']['handler']['App']['GetVehicles']();
 }
 
 export function ListBackups() {
   return window['go']['handler']['App']['ListBackups']();
 }
 
+export function ListExpenseCategories() {
+  return window['go']['handler']['App']['ListExpenseCategories']();
+}
+
 export function ListVehicleExpenses(arg1) {
   return window['go']['handler']['App']['ListVehicleExpenses'](arg1);
 }
 
+export function ListVehicleReminders(arg1) {
+  return window['go']['handler']['App']['ListVehicleReminders'](arg1);
+}
+
 export function ListVehicles() {
   return window['go']['handler']['App']['ListVehicles']();
+}
+
+export function UpdateOdometer(arg1, arg2) {
+  return window['go']['handler']['App']['UpdateOdometer'](arg1, arg2);
+}
+
+export function UpdateReminder(arg1) {
+  return window['go']['handler']['App']['UpdateReminder'](arg1);
+}
+
+export function UpdateVehicle(arg1) {
+  return window['go']['handler']['App']['UpdateVehicle'](arg1);
 }

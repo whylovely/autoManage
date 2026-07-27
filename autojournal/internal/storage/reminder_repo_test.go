@@ -63,6 +63,13 @@ func TestReminderRepo_CRUD(t *testing.T) {
 	if len(active) != 1 || active[0].NextDueOdometer == nil || *active[0].NextDueOdometer != nextOdometer {
 		t.Fatalf("unexpected active reminders: %#v", active)
 	}
+	vehicleReminders, err := repo.ListByVehicle(ctx, vehicleID)
+	if err != nil {
+		t.Fatalf("list reminders by vehicle: %v", err)
+	}
+	if len(vehicleReminders) != 1 || vehicleReminders[0].ID != reminder.ID {
+		t.Fatalf("unexpected vehicle reminders: %#v", vehicleReminders)
+	}
 
 	reminder.Title = "Insurance renewed"
 	reminder.IsActive = false

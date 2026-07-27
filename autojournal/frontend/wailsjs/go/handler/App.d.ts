@@ -6,12 +6,38 @@ export function AddExpense(arg1:domain.Expense):Promise<domain.Expense>;
 
 export function CreateBackup(arg1:string):Promise<domain.Backup>;
 
+export function CreateReminder(arg1:domain.Reminder):Promise<domain.Reminder>;
+
 export function CreateVehicle(arg1:domain.Vehicle):Promise<domain.Vehicle>;
 
-export function Greet(arg1:string):Promise<string>;
+export function DeleteExpense(arg1:number):Promise<void>;
+
+export function DeleteReminder(arg1:number):Promise<void>;
+
+export function DeleteVehicle(arg1:number):Promise<void>;
+
+export function ExportVehicleExpenses(arg1:number,arg2:string):Promise<string>;
+
+export function GetDueReminders():Promise<Array<domain.DueReminder>>;
+
+export function GetExpenseStats(arg1:number):Promise<domain.ExpenseStats>;
+
+export function GetVehicle(arg1:number):Promise<domain.Vehicle>;
+
+export function GetVehicles():Promise<Array<domain.Vehicle>>;
 
 export function ListBackups():Promise<Array<domain.Backup>>;
 
+export function ListExpenseCategories():Promise<Array<domain.ExpenseCategory>>;
+
 export function ListVehicleExpenses(arg1:number):Promise<Array<domain.Expense>>;
 
+export function ListVehicleReminders(arg1:number):Promise<Array<domain.Reminder>>;
+
 export function ListVehicles():Promise<Array<domain.Vehicle>>;
+
+export function UpdateOdometer(arg1:number,arg2:number):Promise<void>;
+
+export function UpdateReminder(arg1:domain.Reminder):Promise<domain.Reminder>;
+
+export function UpdateVehicle(arg1:domain.Vehicle):Promise<domain.Vehicle>;

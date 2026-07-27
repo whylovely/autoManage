@@ -5,6 +5,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReminderScheduler_CheckNow_DeduplicatesUnchangedReminders(t *testing.T) {
@@ -57,8 +59,32 @@ func TestReminderScheduler_CheckNow_DeduplicatesUnchangedReminders(t *testing.T)
 
 type dueReminderProviderStub struct {
 	reminders []domain.DueReminder
+	err       error
 }
 
 func (s *dueReminderProviderStub) GetDueReminders(context.Context, time.Time) ([]domain.DueReminder, error) {
-	return s.reminders, nil
+	return s.reminders, s.err
+}
+
+func TestReminderScheduler_CheckNow_DoesNotEmitOnProviderError(t *testing.T) {
+	provider := &dueReminderProviderStub{err: domain.ErrInfrastructure}
+	emitted := false
+	scheduler := NewReminderScheduler(provider, func(context.Context, string, any) {
+		emitted = true
+	})
+
+	err := scheduler.CheckNow(context.Background())
+	assert.ErrorIs(t, err, domain.ErrInfrastructure)
+	assert.False(t, emitted)
+}
+
+func TestReminderScheduler_StartAndStopAreIdempotent(t *testing.T) {
+	scheduler := NewReminderScheduler(&dueReminderProviderStub{}, func(context.Context, string, any) {})
+
+	assert.NoError(t, scheduler.Start(context.Background()))
+	assert.NoError(t, scheduler.Start(context.Background()))
+	assert.True(t, scheduler.started)
+	scheduler.Stop()
+	scheduler.Stop()
+	assert.False(t, scheduler.started)
 }

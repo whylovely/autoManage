@@ -6,10 +6,14 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type backupRepoStub struct {
 	created *domain.Backup
+	backups []domain.Backup
 }
 
 func (r *backupRepoStub) Create(_ context.Context, backup *domain.Backup) error {
@@ -20,7 +24,7 @@ func (r *backupRepoStub) Create(_ context.Context, backup *domain.Backup) error 
 }
 
 func (backupRepoStub) GetByID(context.Context, int64) (*domain.Backup, error) { return nil, nil }
-func (backupRepoStub) List(context.Context) ([]domain.Backup, error)          { return nil, nil }
+func (r backupRepoStub) List(context.Context) ([]domain.Backup, error)        { return r.backups, nil }
 
 type databaseBackuperStub struct {
 	destination string
@@ -49,4 +53,21 @@ func TestBackupService_CreateBackup_CreatesMetadata(t *testing.T) {
 	if _, err := os.Stat(backup.FilePath); err != nil {
 		t.Fatalf("backup file was not created: %v", err)
 	}
+}
+
+func TestBackupService_ListBackups(t *testing.T) {
+	repo := &backupRepoStub{backups: []domain.Backup{{ID: 1, FilePath: "/tmp/backup.db"}}}
+	service := NewBackupService(repo, &databaseBackuperStub{}, t.TempDir())
+
+	backups, err := service.ListBackups(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, repo.backups, backups)
+}
+
+func TestBackupService_CreateBackup_RequiresDestination(t *testing.T) {
+	service := NewBackupService(&backupRepoStub{}, &databaseBackuperStub{}, "  ")
+
+	backup, err := service.CreateBackup(context.Background(), "note")
+	assert.Nil(t, backup)
+	assert.ErrorIs(t, err, domain.ErrValidation)
 }

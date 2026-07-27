@@ -6,6 +6,9 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCalculateNextDue(t *testing.T) {
@@ -117,6 +120,7 @@ func TestValidateReminder_RejectsInvalidIntervals(t *testing.T) {
 
 func TestReminderService_GetDueReminders(t *testing.T) {
 	now := time.Date(2026, time.January, 10, 12, 0, 0, 0, time.UTC)
+	overdueDate := now.AddDate(0, 0, -2)
 	dateAtThreshold := now.AddDate(0, 0, 7)
 	futureDate := now.AddDate(0, 0, 8)
 	nextOdometer := int64(10_500)
@@ -143,6 +147,13 @@ func TestReminderService_GetDueReminders(t *testing.T) {
 			NextDueDate: &futureDate,
 			IsActive:    true,
 		},
+		{
+			ID:          4,
+			VehicleID:   4,
+			Title:       "Overdue reminder",
+			NextDueDate: &overdueDate,
+			IsActive:    true,
+		},
 	}}
 	vehicleRepo := &dueVehicleRepoStub{vehicles: map[int64]*domain.Vehicle{
 		2: {ID: 2, Odometer: 10_000},
@@ -153,8 +164,8 @@ func TestReminderService_GetDueReminders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get due reminders: %v", err)
 	}
-	if len(dueReminders) != 2 {
-		t.Fatalf("got %d due reminders, want 2", len(dueReminders))
+	if len(dueReminders) != 3 {
+		t.Fatalf("got %d due reminders, want 3", len(dueReminders))
 	}
 	if dueReminders[0].Reminder.ID != 1 || !dueReminders[0].DueByDate || dueReminders[0].DueByOdometer {
 		t.Fatalf("unexpected date due reminder: %#v", dueReminders[0])
@@ -164,13 +175,61 @@ func TestReminderService_GetDueReminders(t *testing.T) {
 	}
 }
 
-type dueReminderRepoStub struct {
-	reminders []domain.Reminder
+func TestReminderService_CreateReminder_CalculatesBothDeadlines(t *testing.T) {
+	lastDate := time.Date(2026, time.January, 10, 0, 0, 0, 0, time.UTC)
+	lastOdometer := int64(10_000)
+	repo := &dueReminderRepoStub{}
+	vehicleRepo := &dueVehicleRepoStub{vehicles: map[int64]*domain.Vehicle{1: {ID: 1}}}
+	service := NewReminderService(repo, vehicleRepo)
+	reminder := &domain.Reminder{
+		VehicleID: 1, Title: " Oil change ", ReminderType: domain.ReminderTypeOilChange,
+		IntervalDays: int64Pointer(30), LastDoneDate: &lastDate,
+		IntervalKM: int64Pointer(5_000), LastDoneOdometer: &lastOdometer,
+	}
+
+	require.NoError(t, service.CreateReminder(context.Background(), reminder))
+	assert.Same(t, reminder, repo.created)
+	assert.Equal(t, "Oil change", reminder.Title)
+	assert.True(t, reminder.IsActive)
+	require.NotNil(t, reminder.NextDueDate)
+	assert.Equal(t, lastDate.AddDate(0, 0, 30), *reminder.NextDueDate)
+	require.NotNil(t, reminder.NextDueOdometer)
+	assert.EqualValues(t, 15_000, *reminder.NextDueOdometer)
 }
 
-func (*dueReminderRepoStub) Create(context.Context, *domain.Reminder) error { return nil }
-func (*dueReminderRepoStub) Update(context.Context, *domain.Reminder) error { return nil }
-func (*dueReminderRepoStub) Delete(context.Context, int64) error            { return nil }
+func TestReminderService_CreateReminder_RequiresExistingVehicle(t *testing.T) {
+	repo := &dueReminderRepoStub{}
+	service := NewReminderService(repo, &dueVehicleRepoStub{vehicles: map[int64]*domain.Vehicle{}})
+	lastOdometer := int64(1_000)
+	reminder := &domain.Reminder{
+		VehicleID: 1, Title: "Oil", ReminderType: domain.ReminderTypeOilChange,
+		IntervalKM: int64Pointer(5_000), LastDoneOdometer: &lastOdometer,
+	}
+
+	err := service.CreateReminder(context.Background(), reminder)
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+	assert.Nil(t, repo.created)
+}
+
+type dueReminderRepoStub struct {
+	reminders []domain.Reminder
+	created   *domain.Reminder
+	updated   *domain.Reminder
+	deletedID int64
+}
+
+func (r *dueReminderRepoStub) Create(_ context.Context, reminder *domain.Reminder) error {
+	r.created = reminder
+	return nil
+}
+func (r *dueReminderRepoStub) Update(_ context.Context, reminder *domain.Reminder) error {
+	r.updated = reminder
+	return nil
+}
+func (r *dueReminderRepoStub) Delete(_ context.Context, id int64) error {
+	r.deletedID = id
+	return nil
+}
 func (*dueReminderRepoStub) GetByID(context.Context, int64) (*domain.Reminder, error) {
 	return nil, domain.ErrNotFound
 }
@@ -213,4 +272,33 @@ func sameOptionalTime(actual, expected *time.Time) bool {
 		return actual == expected
 	}
 	return actual.Equal(*expected)
+}
+
+func TestReminderService_UpdateListAndDelete(t *testing.T) {
+	lastOdometer := int64(20_000)
+	repo := &dueReminderRepoStub{reminders: []domain.Reminder{{ID: 5, VehicleID: 1, Title: "Oil"}}}
+	vehicleRepo := &dueVehicleRepoStub{vehicles: map[int64]*domain.Vehicle{1: {ID: 1}}}
+	service := NewReminderService(repo, vehicleRepo)
+	reminder := &domain.Reminder{
+		ID: 5, VehicleID: 1, Title: "Oil", ReminderType: domain.ReminderTypeOilChange,
+		IntervalKM: int64Pointer(5_000), LastDoneOdometer: &lastOdometer, IsActive: true,
+	}
+
+	require.NoError(t, service.UpdateReminder(context.Background(), reminder))
+	assert.Same(t, reminder, repo.updated)
+	require.NotNil(t, reminder.NextDueOdometer)
+	assert.EqualValues(t, 25_000, *reminder.NextDueOdometer)
+
+	list, err := service.ListVehicleReminders(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Equal(t, repo.reminders, list)
+	require.NoError(t, service.DeleteReminder(context.Background(), reminder.ID))
+	assert.Equal(t, reminder.ID, repo.deletedID)
+}
+
+func TestReminderService_RejectsInvalidIDs(t *testing.T) {
+	service := NewReminderService(&dueReminderRepoStub{}, &dueVehicleRepoStub{})
+	assert.ErrorIs(t, service.DeleteReminder(context.Background(), 0), domain.ErrValidation)
+	_, err := service.ListVehicleReminders(context.Background(), -1)
+	assert.ErrorIs(t, err, domain.ErrValidation)
 }
