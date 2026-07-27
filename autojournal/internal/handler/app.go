@@ -2,18 +2,24 @@ package handler
 
 import (
 	"autojournal/internal/domain"
+	"autojournal/internal/scheduler"
 	"autojournal/internal/service"
 	"context"
 	"fmt"
+	"log"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
 	ctx context.Context
 
-	vehicleService  *service.VehicleService
-	expenseService  *service.ExpenseService
-	categoryService *service.ExpenseCategorySevice
-	backupService   *service.BackupService
+	vehicleService    *service.VehicleService
+	expenseService    *service.ExpenseService
+	categoryService   *service.ExpenseCategorySevice
+	backupService     *service.BackupService
+	reminderService   *service.ReminderService
+	reminderScheduler *scheduler.ReminderScheduler
 }
 
 func NewApp(
@@ -21,12 +27,14 @@ func NewApp(
 	expenseService *service.ExpenseService,
 	categoryService *service.ExpenseCategorySevice,
 	backupService *service.BackupService,
+	reminderService *service.ReminderService,
 ) *App {
 	return &App{
 		vehicleService:  vehicleService,
 		expenseService:  expenseService,
 		categoryService: categoryService,
 		backupService:   backupService,
+		reminderService: reminderService,
 	}
 }
 
@@ -34,6 +42,16 @@ func NewApp(
 // so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+	a.reminderScheduler = scheduler.NewReminderScheduler(
+		a.reminderService,
+		func(ctx context.Context, event string, payload any) {
+			runtime.EventsEmit(ctx, event, payload)
+		},
+	)
+
+	if err := a.reminderScheduler.Start(ctx); err != nil {
+		log.Printf("start reminder scheduler: %v", err)
+	}
 }
 
 func (a *App) CreateVehicle(vehicle domain.Vehicle) (*domain.Vehicle, error) {
@@ -71,4 +89,10 @@ func (a *App) ListBackups() ([]domain.Backup, error) {
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+func (a *App) Shutdown(ctx context.Context) {
+	if a.reminderScheduler != nil {
+		a.reminderScheduler.Stop()
+	}
 }

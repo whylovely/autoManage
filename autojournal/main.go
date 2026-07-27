@@ -32,8 +32,10 @@ func main() {
 	expenseRepo := storage.NewExpenseRepo(db)
 	categoryRepo := storage.NewExpenseCategoryRepo(db)
 	backupRepo := storage.NewBackupRepo(db)
+	reminderRepo := storage.NewReminderRepo(db)
 
 	vehicleService := service.NewVehicleService(vehicleRepo)
+	reminderService := service.NewReminderService(reminderRepo, vehicleRepo)
 	expenseService := service.NewExpenseService(expenseRepo, vehicleRepo, categoryRepo)
 	categoryService := service.NewExpenseCategory(categoryRepo)
 
@@ -52,6 +54,7 @@ func main() {
 		expenseService,
 		categoryService,
 		backupService,
+		reminderService,
 	)
 
 	// Create application with options
@@ -67,6 +70,7 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
+		OnShutdown: app.Shutdown,
 	})
 
 	if err != nil {

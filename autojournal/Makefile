@@ -1,3 +1,5 @@
+.PHONY: dev build test fmt vet check
+
 dev:
 	wails dev
 
