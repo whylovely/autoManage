@@ -57,7 +57,6 @@ func main() {
 		reminderService,
 	)
 
-	// Create application with options
 	err = wails.Run(&options.App{
 		Title:  "autojournal",
 		Width:  1024,

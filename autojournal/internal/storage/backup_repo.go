@@ -10,7 +10,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// BackupRepo persists metadata about backup files, not the files themselves.
 type BackupRepo struct {
 	db *sqlx.DB
 }

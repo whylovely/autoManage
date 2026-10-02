@@ -23,7 +23,6 @@ type ExpenseCategoryService struct {
 	repo domain.ExpenseCategoryRepository
 }
 
-// ExpenseCategorySevice is kept as an alias for backward compatibility.
 type ExpenseCategorySevice = ExpenseCategoryService
 
 func NewExpenseService(

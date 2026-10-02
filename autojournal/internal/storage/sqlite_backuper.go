@@ -9,8 +9,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// SQLiteBackuper creates consistent SQLite snapshots without manually copying
-// WAL files.
 type SQLiteBackuper struct {
 	db *sqlx.DB
 }
